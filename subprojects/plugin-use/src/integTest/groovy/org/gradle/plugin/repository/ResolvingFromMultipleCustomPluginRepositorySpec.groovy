@@ -25,6 +25,7 @@ import org.gradle.test.fixtures.maven.MavenModule
 import org.gradle.test.fixtures.plugin.PluginBuilder
 import org.gradle.util.Requires
 import org.gradle.util.TestPrecondition
+import spock.lang.Ignore
 import spock.lang.Issue
 import spock.lang.Shared
 import spock.lang.Unroll
@@ -75,13 +76,15 @@ class ResolvingFromMultipleCustomPluginRepositorySpec extends AbstractDependency
         settingsFile << """
             pluginManagement {
                 repositories {
-                    ${repositories.collect {
-                        if (it instanceof MavenFileRepository) {
-                            "maven { url '${it.uri}' }"
-                        } else {
-                            "ivy { url '${it.uri}' }"
-                        }
-                      }.join('\n')}
+                    ${
+            repositories.collect {
+                if (it instanceof MavenFileRepository) {
+                    "maven { url '${it.uri}' }"
+                } else {
+                    "ivy { url '${it.uri}' }"
+                }
+            }.join('\n')
+        }
                 }
             }
         """
@@ -208,6 +211,7 @@ class ResolvingFromMultipleCustomPluginRepositorySpec extends AbstractDependency
         repoType << [IVY, MAVEN]
     }
 
+    @Ignore
     @Requires(TestPrecondition.ONLINE)
     def "Can opt-in to plugin portal"() {
         given:
