@@ -16,7 +16,9 @@
 
 package org.gradle.api.internal.changedetection.state.mirror;
 
+import com.google.common.base.Preconditions;
 import org.gradle.api.internal.changedetection.state.FileHashSnapshot;
+import org.gradle.internal.file.FileType;
 import org.gradle.internal.hash.HashCode;
 
 import java.nio.file.Path;
@@ -46,8 +48,14 @@ public class PhysicalFileSnapshot implements PhysicalSnapshot {
     }
 
     @Override
+    public FileType getType() {
+        return FileType.RegularFile;
+    }
+
+    @Override
     public PhysicalSnapshot add(String[] segments, int offset, PhysicalSnapshot snapshot) {
         if (segments.length == offset) {
+            Preconditions.checkState(snapshot.getClass().equals(getClass()), "Expected different snapshot type: requested %s, but was: %s", snapshot.getClass().getSimpleName(), getClass().getSimpleName());
             return this;
         }
         throw new UnsupportedOperationException("Cannot add children of file");

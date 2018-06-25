@@ -17,6 +17,7 @@
 package org.gradle.api.internal.changedetection.state.mirror;
 
 import org.gradle.api.internal.changedetection.state.MissingFileContentSnapshot;
+import org.gradle.internal.file.FileType;
 
 import java.nio.file.Path;
 import java.util.Deque;
@@ -67,6 +68,11 @@ public class PhysicalMissingFileSnapshot implements PhysicalSnapshot {
             }
         }
         return child.add(segments, offset + 1, snapshot);
+    }
+
+    @Override
+    public FileType getType() {
+        return FileType.Missing;
     }
 
     @Override

@@ -14,20 +14,13 @@
  * limitations under the License.
  */
 
-package org.gradle.api.internal.changedetection.state.mirror;
+package org.gradle.api.internal.changedetection.state.mirror
 
-import org.gradle.internal.file.FileType;
+import spock.lang.Specification
 
-import java.nio.file.Path;
-import java.util.Deque;
+class MutablePhysicalDirectorySnapshotTest extends Specification {
 
-@SuppressWarnings("Since15")
-public interface PhysicalSnapshot extends HierarchicalVisitableTree {
-    Path getPath();
-    String getName();
-    PhysicalSnapshot add(String[] segments, int offset, PhysicalSnapshot snapshot);
-    FileType getType();
+    def "can rebuild tree from relative paths"() {
 
-    void visitTree(PhysicalFileVisitor visitor, Deque<String> relativePath);
-    void visitSelf(PhysicalFileVisitor visitor, Deque<String> relativePath);
+    }
 }

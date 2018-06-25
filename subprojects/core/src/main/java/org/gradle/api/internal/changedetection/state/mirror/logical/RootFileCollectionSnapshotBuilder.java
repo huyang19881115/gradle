@@ -26,6 +26,7 @@ import org.gradle.api.internal.changedetection.state.MissingFileSnapshot;
 import org.gradle.api.internal.changedetection.state.RegularFileSnapshot;
 import org.gradle.api.internal.changedetection.state.VisitingFileCollectionSnapshotBuilder;
 import org.gradle.api.internal.changedetection.state.mirror.HierarchicalFileTreeVisitor;
+import org.gradle.api.internal.changedetection.state.mirror.HierarchicalVisitableTree;
 import org.gradle.api.internal.changedetection.state.mirror.VisitableDirectoryTree;
 
 import java.nio.file.Path;
@@ -46,6 +47,10 @@ public abstract class RootFileCollectionSnapshotBuilder implements VisitingFileC
 
     @Override
     public void visitFileTreeSnapshot(VisitableDirectoryTree tree) {
+        visitHierarchicalTree(tree);
+    }
+
+    public void visitHierarchicalTree(HierarchicalVisitableTree tree) {
         final Deque<String> relativePathHolder = new ArrayDeque<String>();
         final Deque<ImmutableList.Builder<LogicalSnapshot>> levelHolder = new ArrayDeque<ImmutableList.Builder<LogicalSnapshot>>();
         final AtomicReference<LogicalSnapshot> result = new AtomicReference<LogicalSnapshot>();

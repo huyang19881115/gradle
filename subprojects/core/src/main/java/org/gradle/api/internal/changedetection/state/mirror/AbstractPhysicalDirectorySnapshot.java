@@ -17,6 +17,7 @@
 package org.gradle.api.internal.changedetection.state.mirror;
 
 import org.gradle.api.internal.changedetection.state.DirContentSnapshot;
+import org.gradle.internal.file.FileType;
 
 import java.nio.file.Path;
 import java.util.Deque;
@@ -38,6 +39,11 @@ public abstract class AbstractPhysicalDirectorySnapshot implements PhysicalSnaps
     @Override
     public String getName() {
         return name;
+    }
+
+    @Override
+    public FileType getType() {
+        return FileType.Directory;
     }
 
     @Override
