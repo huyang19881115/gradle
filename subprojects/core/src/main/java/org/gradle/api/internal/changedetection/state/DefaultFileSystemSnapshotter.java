@@ -17,7 +17,6 @@
 package org.gradle.api.internal.changedetection.state;
 
 import com.google.common.base.Joiner;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.gradle.api.NonNullApi;
 import org.gradle.api.file.FileTreeElement;
@@ -28,7 +27,10 @@ import org.gradle.api.internal.cache.StringInterner;
 import org.gradle.api.internal.changedetection.state.mirror.FileSnapshotHelper;
 import org.gradle.api.internal.changedetection.state.mirror.HierarchicalFileTreeVisitor;
 import org.gradle.api.internal.changedetection.state.mirror.MirrorUpdatingDirectoryWalker;
+import org.gradle.api.internal.changedetection.state.mirror.MutablePhysicalDirectorySnapshot;
+import org.gradle.api.internal.changedetection.state.mirror.PhysicalFileSnapshot;
 import org.gradle.api.internal.changedetection.state.mirror.PhysicalFileTreeVisitor;
+import org.gradle.api.internal.changedetection.state.mirror.PhysicalSnapshot;
 import org.gradle.api.internal.changedetection.state.mirror.VisitableDirectoryTree;
 import org.gradle.api.internal.file.FileTreeInternal;
 import org.gradle.api.internal.file.collections.DirectoryFileTree;
@@ -49,10 +51,8 @@ import org.gradle.normalization.internal.InputNormalizationStrategy;
 
 import java.io.File;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Deque;
-import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Responsible for snapshotting various aspects of the file system.
@@ -196,29 +196,49 @@ public class DefaultFileSystemSnapshotter implements FileSystemSnapshotter {
 
             @Override
             public void accept(HierarchicalFileTreeVisitor visitor) {
-                final List<FileSnapshot> snapshots = new ArrayList<FileSnapshot>();
+                final AtomicReference<PhysicalSnapshot> root = new AtomicReference<PhysicalSnapshot>();
                 tree.visitTreeOrBackingFile(new FileVisitor() {
                     @Override
                     public void visitDir(FileVisitDetails dirDetails) {
-                        snapshots.add(new DirectoryFileSnapshot(stringInterner.intern(dirDetails.getPath()), dirDetails.getRelativePath(), false));
+                        PhysicalSnapshot rootSnapshot = root.get();
+                        if (rootSnapshot == null) {
+                            File rootFile = dirDetails.getFile();
+                            for (String ignored : dirDetails.getRelativePath().getSegments()) {
+                                rootFile = rootFile.getParentFile();
+                            }
+                            rootSnapshot = physicalDirectorySnapshot(rootFile);
+                            root.set(rootSnapshot);
+                        }
+                        rootSnapshot.add(dirDetails.getRelativePath().getSegments(), 0, physicalDirectorySnapshot(dirDetails.getFile()));
                     }
 
                     @Override
                     public void visitFile(FileVisitDetails fileDetails) {
-                        snapshots.add(new RegularFileSnapshot(stringInterner.intern(fileDetails.getPath()), fileDetails.getRelativePath(), false, fileSnapshot(fileDetails)));
+                        PhysicalSnapshot rootSnapshot = root.get();
+                        if (rootSnapshot == null) {
+                            File rootFile = fileDetails.getFile();
+                            for (String ignored : fileDetails.getRelativePath().getSegments()) {
+                                rootFile = rootFile.getParentFile();
+                            }
+                            rootSnapshot = fileDetails.getRelativePath().length() == 0 ? physicalFileSnapshot(fileDetails) : physicalDirectorySnapshot(rootFile);
+                            root.set(rootSnapshot);
+                        }
+                        rootSnapshot.add(fileDetails.getRelativePath().getSegments(), 0, physicalFileSnapshot(fileDetails));
+                    }
+
+                    private MutablePhysicalDirectorySnapshot physicalDirectorySnapshot(File file) {
+                        return new MutablePhysicalDirectorySnapshot(file.toPath(), file.getName());
+                    }
+
+                    private PhysicalFileSnapshot physicalFileSnapshot(FileVisitDetails fileDetails) {
+                        FileHashSnapshot snapshot = fileSnapshot(fileDetails);
+                        return new PhysicalFileSnapshot(fileDetails.getFile().toPath(), fileDetails.getName(), snapshot.getLastModified(), snapshot.getContentMd5());
                     }
                 });
-                if (snapshots.isEmpty()) {
-                    return;
+                PhysicalSnapshot rootSnapshot = root.get();
+                if (rootSnapshot != null) {
+                    rootSnapshot.accept(visitor);
                 }
-                if (snapshots.size() == 1) {
-                    FileSnapshot snapshot = Iterables.getOnlyElement(snapshots);
-                    if (snapshot.getType() != FileType.Directory) {
-                        visitor.visit(Paths.get(snapshot.getPath()), snapshot.getName(), snapshot.getContent());
-                        return;
-                    }
-                }
-                throw new UnsupportedOperationException("Arbitrary FileTreeInternals are not supported yet");
             }
         };
     }
