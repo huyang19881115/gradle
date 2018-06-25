@@ -159,20 +159,18 @@ public class RelativePathFileCollectionSnapshot extends RootHoldingFileCollectio
         final HashSet<String> processedEntries = new HashSet<String>();
         for (Map.Entry<String, LogicalSnapshot> entry : getRoots().entries()) {
             final String basePath = entry.getKey();
-            final Deque<Integer> indizes = new LinkedList<Integer>();
+            final int rootIndex = basePath.length() + 1;
             entry.getValue().accept(new HierarchicalSnapshotVisitor() {
                 private Deque<String> absolutePaths = new LinkedList<String>();
 
                 @Override
                 public void preVisitDirectory(String name) {
                     String absolutePath = getAbsolutePath(name);
-                    int currentIndex = getIndex(name);
                     if (processedEntries.add(absolutePath)) {
-                        NormalizedFileSnapshot snapshot = isRoot() ? new IgnoredPathFileSnapshot(DirContentSnapshot.INSTANCE) : new IndexedNormalizedFileSnapshot(absolutePath, currentIndex, DirContentSnapshot.INSTANCE);
+                        NormalizedFileSnapshot snapshot = isRoot() ? new IgnoredPathFileSnapshot(DirContentSnapshot.INSTANCE) : new IndexedNormalizedFileSnapshot(absolutePath, getIndex(name), DirContentSnapshot.INSTANCE);
                         builder.put(absolutePath, snapshot);
                     }
                     absolutePaths.addLast(absolutePath);
-                    indizes.addLast(currentIndex + name.length());
                 }
 
                 @Override
@@ -191,8 +189,7 @@ public class RelativePathFileCollectionSnapshot extends RootHoldingFileCollectio
                 }
 
                 private int getIndex(String name) {
-                    Integer parentPosition = indizes.peekLast();
-                    return parentPosition == null ? basePath.length() - name.length() : (parentPosition + 1);
+                    return isRoot() ? basePath.length() - name.length() : rootIndex;
                 }
 
                 private boolean isRoot() {
@@ -202,7 +199,6 @@ public class RelativePathFileCollectionSnapshot extends RootHoldingFileCollectio
                 @Override
                 public void postVisitDirectory() {
                     absolutePaths.removeLast();
-                    indizes.removeLast();
                 }
 
                 private String childPath(String parent, String name) {

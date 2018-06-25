@@ -150,7 +150,7 @@ public class TaskOutputCacheCommandFactory {
                 AbsolutePathFileCollectionSnapshotBuilder builder = new AbsolutePathFileCollectionSnapshotBuilder();
 
                 if (snapshot == null) {
-                    fileSystemMirror.putFile(new MissingFileSnapshot(absolutePath, RelativePath.EMPTY_ROOT));
+                    fileSystemMirror.putFile(new MissingFileSnapshot(absolutePath, RelativePath.EMPTY_ROOT.append(true, property.getOutputFile().getName())));
                     propertySnapshotsBuilder.put(propertyName, EmptyFileCollectionSnapshot.INSTANCE);
                     continue;
                 }
@@ -161,7 +161,7 @@ public class TaskOutputCacheCommandFactory {
                             throw new IllegalStateException(String.format("Only a regular file should be produced by unpacking property '%s', but saw a %s", propertyName, snapshot.getType()));
                         }
                         PhysicalFileSnapshot fileSnapshot = (PhysicalFileSnapshot) snapshot;
-                        RegularFileSnapshot regularFileSnapshot = new RegularFileSnapshot(absolutePath, RelativePath.EMPTY_ROOT, true, new FileHashSnapshot(fileSnapshot.getHash(), fileSnapshot.getTimestamp()));
+                        RegularFileSnapshot regularFileSnapshot = new RegularFileSnapshot(absolutePath, RelativePath.EMPTY_ROOT.append(true, snapshot.getName()), true, new FileHashSnapshot(fileSnapshot.getHash(), fileSnapshot.getTimestamp()));
                         builder.visitFileSnapshot(regularFileSnapshot);
                         fileSystemMirror.putFile(regularFileSnapshot);
                         break;
